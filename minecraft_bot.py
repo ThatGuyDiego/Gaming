@@ -1,5 +1,12 @@
 #!/usr/bin/python
 
+'''
+this was built with a Linux server in mind using with TAR and GZIP binaries installed. 
+It launches at boot, starts up minecraft and run backups
+Currently tested on a debian but it should work on any Linux distro
+Has not been tested in OSX but again if TAR and GZIP are there, then it should work. 
+'''
+
 import re
 import subprocess
 import time
@@ -7,14 +14,13 @@ import os
 
 
 pidre = "\w+\s+(\d+).+java.+-jar\s(/.+/).+"
-mcdir = "/home/minecraft/"
-backupdir = "/home/mc_admin/"
-backupname = "minecraft"
+mcdir = "" # directory where Minecraft runs
+backupdir = "" #backup directory
+backupname = "minecraft" # you can change this to anything
 backuplookup = "\d+_%s.tar.gz" % (backupname)
-startupscript = "minecraft.sh"
-backupdays = 10
+startupscript = "minecraft.sh" # start up script
+backupdays = 10 # number of days you want to have backups for
 ltime = time.time()
-
 butoffset = ltime - (backupdays * 86400)
 
 def exists(filepath,filename):
@@ -35,6 +41,8 @@ def timestamp():
     N = time.localtime()
     return str(N[0])+str(N[1])+str(N[2])
 
+# I use this while loop as i had an issue when in some cases the gzip would not occour if the server was rebooted
+# this ensures the tar file is gziped
 def backupzip(backupfile):
     while not exists(backupdir,backupfile+".gz"):
         subprocess.call(["gzip","-f",backupdir+backupfile])
