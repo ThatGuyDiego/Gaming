@@ -20,11 +20,18 @@ backupname = "minecraft" # you can change this to anything
 backuplookup = "\d+_%s.tar.gz" % (backupname)
 startupscript = "minecraft.sh" # start up script
 backupdays = 10 # number of days you want to have backups for
-ltime = time.time()
-butoffset = ltime - (backupdays * 86400)
+single_day = 86400
 
-def exists(filepath,filename):
-    return filename in os.listdir(filepath)
+
+# timestamps are used to creat part of the backup file name
+def timestamp():
+    N = time.localtime()
+    return str(N[0])+str(N[1])+str(N[2])
+# built if you wanted to make filenames where one would back 
+# up once an hour. Currently not used 
+def fulltimestamp():
+    N = time.localtime()
+    return str(N[0])+str(N[1])+str(N[2])+str(N[3])+str(N[4])
 
 def minecraftpid():
     pid = 0
@@ -37,30 +44,47 @@ def minecraftpid():
                 pid = possible.group(1)
     return pid
 
-def timestamp():
-    N = time.localtime()
-    return str(N[0])+str(N[1])+str(N[2])
-
-# I use this while loop as i had an issue when in some cases the gzip would not occour if the server was rebooted
-# this ensures the tar file is gziped
-def backupzip(backupfile):
-    while not exists(backupdir,backupfile+".gz"):
-        subprocess.call(["gzip","-f",backupdir+backupfile])
-
 def backup():
-    ts = timestamp()   
-    bf = str(ts) + "_" + backupname+ ".tar"
-    fbf = backupdir + bf
-    if not exists(backupdir,(bf+".gz")):
-        spcmd = ["tar","-cvf",fbf,mcdir]
-        subprocess.call(spcmd)
-        backupzip(bf)
-        
-def rotatebackup():
-    for items in os.listdir(backupdir):
-        if re.search(backuplookup,items):
-            if os.path.getctime(backupdir+items) <= butoffset:
-                os.remove(backupdir+items)
+    bf = backupdir + str(timestamp()) + "_" + backupname+ ".tar"
+    spcmd = ["tar","-cvf",bf,mcdir]
+    subprocess.call(spcmd)
+    subprocess.call(["gzip","-f", bf])
+
+def backup_list():
+    dirlist = os.listdir(backupdir)
+    backupfiles = []
+    for items in dirlist:
+        terms = "(\d{6,8})_%s.tar.gz" % (backupname)
+        if re.search(terms,items):
+            backupfiles.append(items)
+    return backupfiles    
+
+def up_to_date_backup():
+    bkupfiles = backup_list()
+    diff = 0
+    day_old = time.time() - single_day
+    for items in bkupfiles:
+    	temp = backupdir + items
+        current =  os.path.getmtime(temp)
+        if diff == 0:
+        	diff = current
+        else:
+        	if diff < current:
+        		diff = current
+    if  day_old > diff:
+    	return False
+    else:
+    	return True
+ 
+def backup_clean():
+    bkup_files = backup_list()
+    oldest_file =  time.time() - (single_day  * backupdays)
+    for files in bkup_files:       
+        date_of_file = os.path.getmtime(backupdir+files)  
+        if oldest_file > date_of_file:
+            delfile = backupdir+files
+            os.remove(delfile)
+
 
 def startmc():
     os.chdir(mcdir)
@@ -68,20 +92,32 @@ def startmc():
     output = subprocess.Popen(["nohup",sucmd, "&"],\
                               preexec_fn=os.setpgrp\
                               )
-
-
-laststamp = 0
-
+    
 while True:
     pid = minecraftpid()
-    if laststamp + 86400 < time.time():
+    backup_clean()
+    if not up_to_date_backup():
         backup()
-        time.sleep(5)
-        rotatebackup()
-        laststamp = time.time()
     elif pid == 0:
-        startmc()
-    time.sleep(10)
+        startmc()      
+    time.sleep(60)
 
 
 
+    '''
+    Some notes:
+
+    I didn't use pidof because one might run multiple instances of java:
+
+    example:
+    mc_admin  3004  0.8  7.9 5807308 647696 ?      Sl   17:48   1:48 java -server -Xms1G -Xmx4G -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=4 -XX:+AggressiveOpts -jar /home/minecraft_SNAP/minecraft_server.1.8.7.jar nogui
+    mc_admin  4797 24.0 13.5 5918912 1107744 pts/0 Sl   21:14   2:27 java -server -Xms1G -Xmx4G -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalPacing -XX:ParallelGCThreads=4 -XX:+AggressiveOpts -jar /home/minecraft/minecraft_server.1.8.7.jar nogui
+
+    so minecraftpid uses pidre to look through ps auxxx . note only java 
+    instance that match mcdir var. It also includes some other static 
+    content to help avoid false positives. 
+
+
+    fulltimestamp function may be used in the future if you want multiple backups in 24 hours
+
+    '''
