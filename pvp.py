@@ -1,4 +1,4 @@
-::#!/usr/bin/python
+#!/usr/bin/python
 
 from random import randint
 import subprocess
@@ -20,6 +20,7 @@ class CHAR_CLASS():
         self.inte =  dice(6) + dice (6) + dice (6)
         self.wis =  dice(6) + dice (6) + dice (6)
         self.char =  dice(6) + dice (6) + dice (6)
+        self.mana = 0
         if class_name.lower() == "warrior":
             self.warrior()
         elif class_name.lower() == "rouge":
@@ -78,6 +79,7 @@ class CHAR_CLASS():
         self.rangedmg = 0
         self.dmg = 4
         self.dmg_mod = self.stgth * .1
+        self.mana = (10 + round( self.inte * .5)) * level
         self.initive = 0
         self.initive_mod = 2
         self.special_dmg_mod = 1 + (self.stgth * .1 )
@@ -97,6 +99,7 @@ class CHAR_CLASS():
         self.rangedmg = 0
         self.dmg = 6
         self.dmg_mod = self.stgth * .1
+        self.mana = (10 + round( self.inte * .25)) * level
         self.initive = 0
         self.initive_mod = 2
         self.special_dmg_mod = 2 + (self.stgth * .3 )
@@ -113,6 +116,24 @@ class CHAR_CLASS():
            dmg = dmg + (self.crit * dmg)
        return dmg
 
+class MAGIC():
+     def cure(self,caster,target):
+         magic_class = "holy"
+         magic_type = "white"
+         effect = dice(8) * caster.level()
+         target.hp += effect
+
+     def protect(self,caster,target):
+         magic_class = "holy"
+         magic_type = "white"
+         effect = 2 * caster.level()
+         target.armor -= effect
+
+     def XXXX(self,caster,target):
+         magic_class = ""
+         magic_type = ""
+         effect = "" 
+         target.YYY = "??"
 
 def clear():
     subprocess.call("clear")    
@@ -126,6 +147,7 @@ def print_stats(p1,p2):
     print "%s                    %s" % (p1.name, p2.name)
     print "level:%i              level:%i" % (p1.level, p2.level)
     print "hp:%i                 hp:%i" % (p1.hp, p2.hp)
+    print "mp:%i                 mp:%i" % (p1.mana, p2.mana)
     print "str:%i dex:%i con:%i || str:%i dex:%i con:%i" \
     % ( p1.stgth, p1.dex, p1.con, p2.stgth, p2.dex, p2.con)
     print "thac0:%i               thac0:%i" % (p1.thac0, p2.thac0)
@@ -172,18 +194,17 @@ def fight_round(p1,p2):
    else:
        print "errors are occuring"
 
-   print token + "is next"
-   
-   if token == p1.name:
-       print p1.name + " turn"
-       dmg(p1,p2)
-       p1.special_counter += 1
-   elif token == p2.name:
-       print p2.name + " turn"
-       dmg(p2,p1)
-       p1.special_counter += 1
-   else:
-       print "errors are occuring"
+   if p1.hp > 0 and p2.hp > 0:
+       if token == p1.name:
+           print p1.name + " turn"
+           dmg(p1,p2)
+           p1.special_counter += 1
+       elif token == p2.name:
+           print p2.name + " turn"
+           dmg(p2,p1)
+           p1.special_counter += 1
+       else:
+           print "errors are occuring"
 
 
 
@@ -205,4 +226,3 @@ while Good.hp > 0 and Bad.hp > 0:
 
 print_stats(Good,Bad)
 
-  
