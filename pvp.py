@@ -1,38 +1,42 @@
-#!/usr/bin/python
-"""
-A simple game script that just generates two characters and they fight each other. 
-Initially based on AD&D 2nd edition mechanics but modified in a variety of ways. 
-
-"""
+::#!/usr/bin/python
 
 from random import randint
 import subprocess
 from time import sleep
 
+"""
+A simple game script that just generates two characters and they fight each other. 
+Initially based on AD&D 2nd edition mechanics but modified in a variety of ways. 
+"""
 
-
-class WARRIOR():
-    def __init__(self,level,name):
+class CHAR_CLASS():
+    def __init__(self,level,name,class_name):
         self.level = level
         self.name = name
-        self.stgth = dice(20)
-        if self.stgth < 10:
-            while self.stgth < 10:
-                self.stgth = dice(20)
-        self.dex = dice(20)
-        self.con = dice(20)
-        if self.con < 10:
-            while self.con < 10:
-                self.con = dice(20)
-        self.inte = dice(20)
-        self.wis = dice(20)
-        self.char = dice(20) 
+        self.stgth = dice(6) + dice (6) + dice (6)
+        self.stgth =  dice(6) + dice (6) + dice (6) 
+        self.dex =  dice(6) + dice (6) + dice (6)
+        self.con =  dice(6) + dice (6) + dice (6)
+        self.inte =  dice(6) + dice (6) + dice (6)
+        self.wis =  dice(6) + dice (6) + dice (6)
+        self.char =  dice(6) + dice (6) + dice (6)
+        if class_name.lower() == "warrior":
+            self.warrior()
+        elif class_name.lower() == "rouge":
+            self.rouge()
+        elif class_name.lower() == "mage":
+            self.mage()
+        elif class_name.lower() == "priest":
+            self.priest()
+
+       
+    def warrior(self):
         self.hp = 0
-        for i in range(1,(level+1)):
+        for i in range(1,(self.level+1)):
             self.hp += dice(10) + (self.con *.2)
         self.armor = 5
         self.dodge = round(.1 * self.dex)
-        self.thac0 = 20 - level - (.2 * self.dex) 
+        self.thac0 = 20 - self.level - (.2 * self.dex)
         self.rangedmg = 4
         self.dmg = 8
         self.dmg_mod = self.stgth * .2
@@ -44,32 +48,14 @@ class WARRIOR():
         self.special_counter = 0
         self.crit_chance  = .1 * self.dex
         self.crit = self.dex/100
-    def damage(self):
-       dmg =  int(round(dice(self.dmg))) + int(round(self.dmg_mod))
-       if dice(100) <= round(self.crit_chance):
-           dmg = dmg + (self.crit * dmg)
-       return dmg
-        
 
-class ROUGE():
-    def __init__(self,level,name):
-        self.level = level
-        self.name = name
-        self.stgth = dice(20)
-        self.dex = dice(20)
-        if self.dex < 10:
-            while self.dex < 10:
-                self.dex = dice(20)
-        self.con = dice(20)
-        self.inte = dice(20)
-        self.wis = dice(20)
-        self.char = dice(20)
+    def rouge(self):
         self.hp = 0
-        for i in range(1,(level+1)):
+        for i in range(1,(self.level+1)):
             self.hp += dice(6) + (self.con *.2)
         self.armor = 10
         self.dodge = round(.4 * self.dex)
-        self.thac0 = 20 - level - (.4 * self.dex)
+        self.thac0 = 20 - self.level - (.4 * self.dex)
         self.rangedmg = 6
         self.dmg = 4
         self.dmg_mod = self.stgth * .2
@@ -81,12 +67,51 @@ class ROUGE():
         self.special_counter = 0
         self.crit_chance  = .4 * self.dex
         self.crit = self.dex/100
-    def damage(self):
+
+    def mage(self):
+        self.hp = 0
+        for i in range(1,(self.level+1)):
+            self.hp += dice(4) + (self.con *.2)
+        self.armor = 10
+        self.dodge = round(.1 * self.dex)
+        self.thac0 = 20 - self.level - (.1 * self.dex)
+        self.rangedmg = 0
+        self.dmg = 4
+        self.dmg_mod = self.stgth * .1
+        self.initive = 0
+        self.initive_mod = 2
+        self.special_dmg_mod = 1 + (self.stgth * .1 )
+        self.special_atk_mod = 1 + ( self.dex * .1)
+        self.special_counter_mod = 4
+        self.special_counter = 0
+        self.crit_chance  = .1 * self.dex
+        self.crit = self.dex/100
+
+    def  priest(self):
+        self.hp = 0
+        for i in range(1,(self.level+1)):
+            self.hp += dice(6) + (self.con *.2)
+        self.armor = 10
+        self.dodge = round(.1 * self.dex)
+        self.thac0 = 20 - self.level - (.1 * self.dex)
+        self.rangedmg = 0
+        self.dmg = 6
+        self.dmg_mod = self.stgth * .1
+        self.initive = 0
+        self.initive_mod = 2
+        self.special_dmg_mod = 2 + (self.stgth * .3 )
+        self.special_atk_mod = 2 + ( self.dex * .3)
+        self.special_counter_mod = 4
+        self.special_counter = 0
+        self.crit_chance  = .1 * self.dex
+        self.crit = self.dex/100
+
+
+    def melee_damage(self):
        dmg =  int(round(dice(self.dmg))) + int(round(self.dmg_mod))
        if dice(100) <= round(self.crit_chance):
            dmg = dmg + (self.crit * dmg)
        return dmg
-
 
 
 def clear():
@@ -112,7 +137,7 @@ def print_stats(p1,p2):
 
 def dmg(first,second):
     atk = dice(20) - second.dodge
-    dmg = first.damage()
+    dmg = first.melee_damage()
     if first.special_counter >= 10:
         atk *= int(round(first.special_atk_mod))
         dmg *= int(round(first.special_dmg_mod))
@@ -162,8 +187,8 @@ def fight_round(p1,p2):
 
 
 
-Good = WARRIOR(10,"Good")
-Bad = ROUGE(10,"Bad")
+Good = CHAR_CLASS(10,"Good","warrior")
+Bad = CHAR_CLASS(10,"Bad","rouge")
 
 clear()
 print_stats (Good,Bad)
@@ -180,3 +205,4 @@ while Good.hp > 0 and Bad.hp > 0:
 
 print_stats(Good,Bad)
 
+  
